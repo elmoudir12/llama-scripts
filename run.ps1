@@ -121,6 +121,8 @@ do {
         $FULL = "-m `"$MODEL`" --mmproj `"$MMPROJ`" -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95 --top-k 20"
         $NOMTP = $FULL
         $TEXT = "-m `"$MODEL`" -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95 --top-k 20"
+        $KV8 = "-m `"$MODEL`" --mmproj `"$MMPROJ`" -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95 --top-k 20 -ctk q8_0 -ctv q8_0"
+        $KV4_100K = "-m `"$MODEL`" --mmproj `"$MMPROJ`" -ngl all -fa on -c 100000 --temp 1.0 --top-p 0.95 --top-k 20 -ctk q4_0 -ctv q4_0"
     } elseif ($m -eq "3") {
         $MODEL = $G12_MODEL
         $MMPROJ = $G12_MMPROJ
@@ -146,9 +148,11 @@ do {
             $choice = Read-Keyed "=== Qwen 3.6 27B ===" @(
                 "1. Chat (text only)",
                 "2. Chat with image",
-                "3. Server mode (API)",
-                "4. Server mode (API, no vision)",
-                "5. Custom prompt",
+                "3. Server mode (API, default)",
+                "4. Server mode (API, Q8_0 KV @70k) -- recommended",
+                "5. Server mode (API, Q4_0 KV @100k)",
+                "6. Server mode (API, no vision)",
+                "7. Custom prompt",
                 "0. Back to model picker"
             )
         } elseif ($m -eq "3") {
@@ -222,6 +226,13 @@ do {
                 if ($m -eq "1") {
                     $img = Read-Host "Path to image"
                     & "$BIN\llama-cli.exe" $NOMTP.Split(" ") "--mmproj" $GW_MMPROJ "--image" $img "--jinja"
+                } elseif ($m -eq "2") {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    Write-Host "KV cache: Q8_0 | Context: 70k (recommended)" -ForegroundColor Yellow
+                    & "$BIN\llama-server.exe" $KV8.Split(" ") --port 8080 --host 0.0.0.0
                 } else {
                     Kill-OldServer
                     Start-Monitor
@@ -238,6 +249,13 @@ do {
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
                     & "$BIN\llama-server.exe" $FULL.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
+                } elseif ($m -eq "2") {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    Write-Host "KV cache: Q4_0 | Context: 100k" -ForegroundColor Yellow
+                    & "$BIN\llama-server.exe" $KV4_100K.Split(" ") --port 8080 --host 0.0.0.0
                 } else {
                     $prompt = Read-Host "Enter prompt"
                     if ($m -eq "2") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt }
@@ -251,17 +269,29 @@ do {
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
                     & "$BIN\llama-server.exe" $FULL.Split(" ") "--mmproj" $GW_MMPROJ --batch-size 1024 --port 8080 --host 0.0.0.0
+                } elseif ($m -eq "2") {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    Write-Host "Mode: text only (no vision)" -ForegroundColor Gray
+                    & "$BIN\llama-server.exe" $TEXT.Split(" ") --port 8080 --host 0.0.0.0
                 } else {
                     $prompt = Read-Host "Enter prompt"
                     & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt
                 }
             }
             "7" {
-                Kill-OldServer
-                Start-Monitor
-                $lan = Get-LanIP
-                Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                & "$BIN\llama-server.exe" $NOMTP.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
+                if ($m -eq "2") {
+                    $prompt = Read-Host "Enter prompt"
+                    & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt
+                } else {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    & "$BIN\llama-server.exe" $NOMTP.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
+                }
             }
             "8" {
                 Kill-OldServer
