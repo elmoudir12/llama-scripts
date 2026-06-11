@@ -36,9 +36,13 @@ while ($true) {
             Write-Host "Generating: " -NoNewline; Write-Host "yes" -ForegroundColor Green
             foreach ($s in $active) {
                 $t = $s.cache_tokens_count
+                if ($s.n_prompt_tokens_processed -and $s.n_prompt_tokens_processed -gt 0) {
+                    $pct = [math]::Round($s.progress * 100, 0)
+                    Write-Host "  Prompt: $($s.n_prompt_tokens_processed)/$($s.n_prompt_tokens) ($pct%)" -ForegroundColor Yellow
+                }
                 $now = Get-Date
                 $elapsed = ($now - $last_time).TotalSeconds
-                if ($last_tokens -gt 0 -and $elapsed -gt 0) {
+                if ($last_tokens -gt 0 -and $elapsed -gt 0 -and $t -gt $last_tokens) {
                     $tps = [math]::Round(($t - $last_tokens) / $elapsed, 1)
                     Write-Host "  Tok/s: $tps" -ForegroundColor Green
                 }
