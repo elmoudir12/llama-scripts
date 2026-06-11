@@ -21,7 +21,6 @@ function Get-LanIP {
 }
 
 function Start-Monitor {
-    Kill-OldServer
     Start-Process "C:\Users\AZIZ\Desktop\llama.cpp\monitor.bat"
 }
 
@@ -194,6 +193,7 @@ do {
                 if ($m -eq "1") {
                     & "$BIN\llama-cli.exe" $NOMTP.Split(" ") "--jinja"
                 } elseif ($m -eq "4") {
+                    Kill-OldServer
                     Start-Monitor
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
@@ -211,6 +211,7 @@ do {
                     $prompt = Read-Host "Enter prompt"
                     & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt
                 } else {
+                    Kill-OldServer
                     Start-Monitor
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
@@ -222,6 +223,7 @@ do {
                     $img = Read-Host "Path to image"
                     & "$BIN\llama-cli.exe" $NOMTP.Split(" ") "--mmproj" $GW_MMPROJ "--image" $img "--jinja"
                 } else {
+                    Kill-OldServer
                     Start-Monitor
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
@@ -231,10 +233,11 @@ do {
             }
             "5" {
                 if ($m -eq "1") {
+                    Kill-OldServer
                     Start-Monitor
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                    & "$BIN\llama-server.exe" $FULL.Split(" ") --port 8080 --host 0.0.0.0
+                    & "$BIN\llama-server.exe" $FULL.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
                 } else {
                     $prompt = Read-Host "Enter prompt"
                     if ($m -eq "2") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt }
@@ -243,26 +246,29 @@ do {
             }
             "6" {
                 if ($m -eq "1") {
+                    Kill-OldServer
                     Start-Monitor
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                    & "$BIN\llama-server.exe" $FULL.Split(" ") "--mmproj" $GW_MMPROJ --port 8080 --host 0.0.0.0
+                    & "$BIN\llama-server.exe" $FULL.Split(" ") "--mmproj" $GW_MMPROJ --batch-size 1024 --port 8080 --host 0.0.0.0
                 } else {
                     $prompt = Read-Host "Enter prompt"
                     & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt
                 }
             }
             "7" {
+                Kill-OldServer
                 Start-Monitor
                 $lan = Get-LanIP
                 Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                & "$BIN\llama-server.exe" $NOMTP.Split(" ") --port 8080 --host 0.0.0.0
+                & "$BIN\llama-server.exe" $NOMTP.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
             }
             "8" {
+                Kill-OldServer
                 Start-Monitor
                 $lan = Get-LanIP
                 Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                & "$BIN\llama-server.exe" $NOMTP.Split(" ") "--mmproj" $GW_MMPROJ --port 8080 --host 0.0.0.0
+                & "$BIN\llama-server.exe" $NOMTP.Split(" ") "--mmproj" $GW_MMPROJ --batch-size 1024 --port 8080 --host 0.0.0.0
             }
             "9" {
                 $prompt = Read-Host "Enter prompt"

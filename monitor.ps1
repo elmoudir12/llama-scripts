@@ -4,12 +4,19 @@ $api = "http://localhost:$Port"
 $last_tokens = 0
 $last_time = Get-Date
 
+$server_was_up = $false
 while ($true) {
-    if (-not (Get-Process -Name "llama-server" -ErrorAction SilentlyContinue)) {
-        Write-Host "llama-server exited. Closing monitor..." -ForegroundColor Red
-        Start-Sleep -Seconds 1
-        break
+    $proc = Get-Process -Name "llama-server" -ErrorAction SilentlyContinue
+    if (-not $proc) {
+        if ($server_was_up) {
+            Write-Host "llama-server exited. Closing monitor..." -ForegroundColor Red
+            Start-Sleep -Seconds 1
+            break
+        }
+        Start-Sleep -Seconds 2
+        continue
     }
+    $server_was_up = $true
     Clear-Host
     Write-Host "====== llama.cpp Monitor ======" -ForegroundColor Cyan
     Write-Host ""
