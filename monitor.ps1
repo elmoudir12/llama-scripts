@@ -6,7 +6,7 @@ $last_time = Get-Date
 
 while ($true) {
     Clear-Host
-    Write-Host "====== Gemma4 Monitor ======" -ForegroundColor Cyan
+    Write-Host "====== llama.cpp Monitor ======" -ForegroundColor Cyan
     Write-Host ""
 
     # Model info
@@ -15,6 +15,15 @@ while ($true) {
         $m = $models.data[0]
         Write-Host "Model: " -NoNewline; Write-Host "$($m.id)" -ForegroundColor Yellow
         Write-Host "Context: $($m.meta.n_ctx) / $($m.meta.n_ctx_train) (cur/train)" -ForegroundColor Gray
+
+        # Detect MTP and vision from server process command line
+        $svc = Get-CimInstance Win32_Process -Filter "name='llama-server.exe'" -ErrorAction SilentlyContinue
+        if ($svc) {
+            $cl = $svc.CommandLine
+            $mtp = if ($cl -match "--spec-type") { "yes" } else { "no" }
+            $mmproj = if ($cl -match "--mmproj") { "yes" } else { "no" }
+            Write-Host "MTP: $mtp | Vision: $mmproj" -ForegroundColor Gray
+        }
     } catch {
         Write-Host "Model: " -NoNewline; Write-Host "offline" -ForegroundColor Red
     }
@@ -42,6 +51,23 @@ while ($true) {
     } catch {
         Write-Host "Server: " -NoNewline; Write-Host "offline" -ForegroundColor Red
     }
+
+    # Connected clients
+    try {
+        $raw = netstat -n 2>&1
+        $conns = $raw | Select-String ":$Port " | Where-Object { $_ -match "ESTABLISHED" }
+        $remote = $conns | ForEach-Object {
+            $parts = $_ -split "\s+"
+            if ($parts.Count -ge 4) {
+                $foreign = $parts[3]
+                $addr = $foreign -replace ":\d+$", ""
+                if ($addr -ne "127.0.0.1" -and $addr -ne "::1") { $addr }
+            }
+        } | Select-Object -Unique
+        if ($remote) {
+            Write-Host "Clients: " -NoNewline; Write-Host "$($remote -join ', ')" -ForegroundColor Green
+        }
+    } catch { Write-Host "Clients: error" -ForegroundColor Red }
 
     Write-Host ""
 
