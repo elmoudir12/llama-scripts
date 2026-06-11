@@ -5,6 +5,11 @@ $last_tokens = 0
 $last_time = Get-Date
 
 while ($true) {
+    if (-not (Get-Process -Name "llama-server" -ErrorAction SilentlyContinue)) {
+        Write-Host "llama-server exited. Closing monitor..." -ForegroundColor Red
+        Start-Sleep -Seconds 1
+        break
+    }
     Clear-Host
     Write-Host "====== llama.cpp Monitor ======" -ForegroundColor Cyan
     Write-Host ""
