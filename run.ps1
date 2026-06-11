@@ -166,9 +166,10 @@ do {
             $choice = Read-Keyed "=== Gemma 4 31B ===" @(
                 "1. Chat (with MTP)",
                 "2. Chat with image (with MTP)",
-                "3. Server mode (API, with MTP)",
-                "4. Server mode (API, no MTP)",
-                "5. Custom prompt",
+                "3. Server mode (with MTP, no vision)",
+                "4. Server mode (with MTP, vision)",
+                "5. Server mode (no MTP, no vision)",
+                "6. Custom prompt",
                 "0. Back to model picker"
             )
         }
@@ -206,16 +207,34 @@ do {
                 }
             }
             "4" {
-                Start-Monitor
-                $lan = Get-LanIP
-                Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
-                if ($m -eq "2") { & "$BIN\llama-server.exe" $TEXT.Split(" ") --port 8080 --host 0.0.0.0 }
-                else { & "$BIN\llama-server.exe" $NOMTP.Split(" ") --port 8080 --host 0.0.0.0 }
+                if ($m -eq "1") {
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    & "$BIN\llama-server.exe" $FULL.Split(" ") "--mmproj" $GW_MMPROJ --port 8080 --host 0.0.0.0
+                } else {
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    if ($m -eq "2") { & "$BIN\llama-server.exe" $TEXT.Split(" ") --port 8080 --host 0.0.0.0 }
+                    else { & "$BIN\llama-server.exe" $NOMTP.Split(" ") --port 8080 --host 0.0.0.0 }
+                }
             }
             "5" {
+                if ($m -eq "1") {
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    & "$BIN\llama-server.exe" $NOMTP.Split(" ") --port 8080 --host 0.0.0.0
+                } else {
+                    $prompt = Read-Host "Enter prompt"
+                    if ($m -eq "2") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt }
+                    else { & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt }
+                }
+            }
+            "6" {
                 $prompt = Read-Host "Enter prompt"
-                if ($m -eq "2") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt }
-                else { & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt }
+                & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt
             }
         }
         Write-Host ""
