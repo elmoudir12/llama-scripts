@@ -1,7 +1,8 @@
 $env:GGML_CUDA_ENABLE_UNSAFE_MATH = "1"
 $BIN = "C:\Users\AZIZ\Desktop\llama.cpp\build\bin"
 
-$GW_MODEL = "C:\Users\AZIZ\Desktop\llama.cpp\models\gemma-4-31B-it-qat-UD-Q4_K_XL\gemma-4-31B-it-qat-UD-Q4_K_XL.gguf"
+$G12U_MODEL = "C:\Users\AZIZ\Desktop\llama.cpp\models\gemma-4-12B-it-uncensored-heretic-NVFP4\gemma-4-12B-it-uncensored-heretic-NVFP4.gguf"
+$G12U_MMPROJ = "C:\Users\AZIZ\Desktop\llama.cpp\models\gemma-4-12B-it-uncensored-heretic-NVFP4\gemma-4-12B-it-uncensored-heretic-mmproj-BF16.gguf"
 $GW_MMPROJ = "C:\Users\AZIZ\Desktop\llama.cpp\models\gemma-4-31B-it-qat-UD-Q4_K_XL\mmproj-BF16.gguf"
 $GW_MTP = "C:\Users\AZIZ\Desktop\llama.cpp\models\gemma-4-31B-it-qat-UD-Q4_K_XL\gemma-4-31B-it-Q4_0-MTP.gguf"
 
@@ -78,12 +79,13 @@ do {
         "2. Qwen 3.6 27B (native MTP)",
         "3. Gemma 4 12B (external MTP draft)",
         "4. North Mini Code 1.0 (MoE code model)",
-        "5. Check for llama.cpp updates",
+        "5. Gemma 4 12B uncensored (NVFP4)",
+        "6. Check for llama.cpp updates",
         "0. Quit"
     )
     if ($m -eq "0" -or $m -eq "") { break }
 
-    if ($m -eq "5") {
+    if ($m -eq "6") {
         Write-Host "Checking for updates..." -ForegroundColor Yellow
         $current = & "$BIN\llama-server.exe" --version 2>&1 | Select-Object -First 1
         Write-Host "Current: $current" -ForegroundColor Cyan
@@ -135,6 +137,12 @@ do {
         $FULL = "-m `"$MODEL`" --jinja -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95"
         $NOMTP = $FULL
         $TEXT = $FULL
+    } elseif ($m -eq "5") {
+        $MODEL = $G12U_MODEL
+        $MMPROJ = $G12U_MMPROJ
+        $FULL = "-m `"$MODEL`" --mmproj `"$MMPROJ`" --jinja -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95 --top-k 64"
+        $NOMTP = $FULL
+        $TEXT = "-m `"$MODEL`" --jinja -ngl all -fa on -c 70000 --temp 1.0 --top-p 0.95 --top-k 64"
     } else {
         $MODEL = $GW_MODEL
         $MMPROJ = $GW_MMPROJ
@@ -171,6 +179,15 @@ do {
                 "3. Custom prompt",
                 "0. Back to model picker"
             )
+        } elseif ($m -eq "5") {
+            $choice = Read-Keyed "=== Gemma 4 12B uncensored ===" @(
+                "1. Chat",
+                "2. Chat with image",
+                "3. Server mode (API)",
+                "4. Server mode (API, no vision)",
+                "5. Custom prompt",
+                "0. Back to model picker"
+            )
         } else {
             $choice = Read-Keyed "=== Gemma 4 31B ===" @(
                 "1. Chat (with MTP)",
@@ -190,12 +207,16 @@ do {
         switch ($choice) {
             "1" {
                 if ($m -eq "2") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") "--chat-template" "qwen" }
+                elseif ($m -eq "5") { & "$BIN\llama-cli.exe" $TEXT.Split(" ") "--jinja" }
                 elseif ($m -eq "4") { & "$BIN\llama-cli.exe" $FULL.Split(" ") }
                 else { & "$BIN\llama-cli.exe" $FULL.Split(" ") "--chat-template" "gemma" }
             }
             "2" {
                 if ($m -eq "1") {
                     & "$BIN\llama-cli.exe" $NOMTP.Split(" ") "--jinja"
+                } elseif ($m -eq "5") {
+                    $img = Read-Host "Path to image"
+                    & "$BIN\llama-cli.exe" $FULL.Split(" ") "--image" $img
                 } elseif ($m -eq "4") {
                     Kill-OldServer
                     Start-Monitor
@@ -211,6 +232,12 @@ do {
                 if ($m -eq "1") {
                     $img = Read-Host "Path to image"
                     & "$BIN\llama-cli.exe" $FULL.Split(" ") "--mmproj" $GW_MMPROJ "--image" $img "--chat-template" "gemma"
+                } elseif ($m -eq "5") {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    & "$BIN\llama-server.exe" $FULL.Split(" ") --port 8080 --host 0.0.0.0
                 } elseif ($m -eq "4") {
                     $prompt = Read-Host "Enter prompt"
                     & "$BIN\llama-cli.exe" $FULL.Split(" ") -p $prompt
@@ -226,6 +253,12 @@ do {
                 if ($m -eq "1") {
                     $img = Read-Host "Path to image"
                     & "$BIN\llama-cli.exe" $NOMTP.Split(" ") "--mmproj" $GW_MMPROJ "--image" $img "--jinja"
+                } elseif ($m -eq "5") {
+                    Kill-OldServer
+                    Start-Monitor
+                    $lan = Get-LanIP
+                    Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
+                    & "$BIN\llama-server.exe" $TEXT.Split(" ") --port 8080 --host 0.0.0.0
                 } elseif ($m -eq "2") {
                     Kill-OldServer
                     Start-Monitor
@@ -249,6 +282,9 @@ do {
                     $lan = Get-LanIP
                     Write-Host "Connect from other devices at: http://$lan`:8080" -ForegroundColor Green
                     & "$BIN\llama-server.exe" $FULL.Split(" ") --batch-size 1024 --port 8080 --host 0.0.0.0
+                } elseif ($m -eq "5") {
+                    $prompt = Read-Host "Enter prompt"
+                    & "$BIN\llama-cli.exe" $TEXT.Split(" ") -p $prompt
                 } elseif ($m -eq "2") {
                     Kill-OldServer
                     Start-Monitor
